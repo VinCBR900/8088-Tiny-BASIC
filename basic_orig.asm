@@ -625,7 +625,9 @@ program:	; start of program?
         TIMES (progloc + 160*max_length)-($-$$) DB 0x0d
         db " zi2=(zi*zi)/256",0x0d   
         TIMES (progloc + 170*max_length)-($-$$) DB 0x0d
-        db " if zr2+zi2>1024 goto 220",0x0d   
+        db " m=(zr2+zi2)/1025",0x0d
+        TIMES (progloc + 171*max_length)-($-$$) DB 0x0d
+        db " if m goto 220",0x0d
         TIMES (progloc + 180*max_length)-($-$$) DB 0x0d
         db " zi=((zr*zi)/128)+ci",0x0d   
         TIMES (progloc + 190*max_length)-($-$$) DB 0x0d
@@ -633,27 +635,85 @@ program:	; start of program?
         TIMES (progloc + 200*max_length)-($-$$) DB 0x0d
         db " i=i+1",0x0d   
         TIMES (progloc + 210*max_length)-($-$$) DB 0x0d
-        db " if i<16 goto 150",0x0d   
+        db " if i-16 goto 150",0x0d   
         TIMES (progloc + 220*max_length)-($-$$) DB 0x0d
-        db " if i<8 goto 230",0x0d   
+        db " if i-8 goto 223",0x0d
         TIMES (progloc + 221*max_length)-($-$$) DB 0x0d
-        db " if i<12 goto 290",0x0d   
+        db " goto 290",0x0d
         TIMES (progloc + 222*max_length)-($-$$) DB 0x0d
-        db " goto 300",0x0d   
+        db 0x0d
+        TIMES (progloc + 223*max_length)-($-$$) DB 0x0d
+        db " if i-9 goto 225",0x0d
+        TIMES (progloc + 224*max_length)-($-$$) DB 0x0d
+        db " goto 290",0x0d
+        TIMES (progloc + 225*max_length)-($-$$) DB 0x0d
+        db " if i-10 goto 227",0x0d
+        TIMES (progloc + 226*max_length)-($-$$) DB 0x0d
+        db " goto 290",0x0d
+        TIMES (progloc + 227*max_length)-($-$$) DB 0x0d
+        db " if i-11 goto 230",0x0d
+        TIMES (progloc + 228*max_length)-($-$$) DB 0x0d
+        db " goto 290",0x0d
         TIMES (progloc + 230*max_length)-($-$$) DB 0x0d
-        db " if i<4 goto 240",0x0d   
+        db " if i-12 goto 233",0x0d
         TIMES (progloc + 231*max_length)-($-$$) DB 0x0d
-        db " if i<6 goto 270",0x0d   
+        db " goto 300",0x0d
         TIMES (progloc + 232*max_length)-($-$$) DB 0x0d
-        db " goto 280",0x0d   
+        db 0x0d
+        TIMES (progloc + 233*max_length)-($-$$) DB 0x0d
+        db " if i-13 goto 235",0x0d
+        TIMES (progloc + 234*max_length)-($-$$) DB 0x0d
+        db " goto 300",0x0d
+        TIMES (progloc + 235*max_length)-($-$$) DB 0x0d
+        db " if i-14 goto 237",0x0d
+        TIMES (progloc + 236*max_length)-($-$$) DB 0x0d
+        db " goto 300",0x0d
+        TIMES (progloc + 237*max_length)-($-$$) DB 0x0d
+        db " if i-15 goto 239",0x0d
+        TIMES (progloc + 238*max_length)-($-$$) DB 0x0d
+        db " goto 300",0x0d
+        TIMES (progloc + 239*max_length)-($-$$) DB 0x0d
+        db " if i-16 goto 242",0x0d
         TIMES (progloc + 240*max_length)-($-$$) DB 0x0d
-        db " if i<2 goto 250",0x0d   
+        db " goto 300",0x0d
         TIMES (progloc + 241*max_length)-($-$$) DB 0x0d
-        db " goto 260",0x0d   
+        db 0x0d
+        TIMES (progloc + 242*max_length)-($-$$) DB 0x0d
+        db " if i-4 goto 245",0x0d
+        TIMES (progloc + 243*max_length)-($-$$) DB 0x0d
+        db " goto 270",0x0d
+        TIMES (progloc + 244*max_length)-($-$$) DB 0x0d
+        db 0x0d
+        TIMES (progloc + 245*max_length)-($-$$) DB 0x0d
+        db " if i-5 goto 248",0x0d
+        TIMES (progloc + 246*max_length)-($-$$) DB 0x0d
+        db " goto 270",0x0d
+        TIMES (progloc + 247*max_length)-($-$$) DB 0x0d
+        db 0x0d
+        TIMES (progloc + 248*max_length)-($-$$) DB 0x0d
+        db " if i-6 goto 251",0x0d
+        TIMES (progloc + 249*max_length)-($-$$) DB 0x0d
+        db " goto 280",0x0d
         TIMES (progloc + 250*max_length)-($-$$) DB 0x0d
         db " print ",0x22," ",0x22,";",0x0d   
         TIMES (progloc + 251*max_length)-($-$$) DB 0x0d
-        db " goto 310",0x0d   
+        db " if i-7 goto 254",0x0d
+        TIMES (progloc + 252*max_length)-($-$$) DB 0x0d
+        db " goto 280",0x0d
+        TIMES (progloc + 253*max_length)-($-$$) DB 0x0d
+        db 0x0d
+        TIMES (progloc + 254*max_length)-($-$$) DB 0x0d
+        db " if i-2 goto 257",0x0d
+        TIMES (progloc + 255*max_length)-($-$$) DB 0x0d
+        db " goto 260",0x0d
+        TIMES (progloc + 256*max_length)-($-$$) DB 0x0d
+        db 0x0d
+        TIMES (progloc + 257*max_length)-($-$$) DB 0x0d
+        db " if i-3 goto 250",0x0d
+        TIMES (progloc + 258*max_length)-($-$$) DB 0x0d
+        db " goto 260",0x0d
+        TIMES (progloc + 259*max_length)-($-$$) DB 0x0d
+        db 0x0d
         TIMES (progloc + 260*max_length)-($-$$) DB 0x0d
         db " print ",0x22,".",0x22,";",0x0d
         TIMES (progloc + 261*max_length)-($-$$) DB 0x0d
@@ -677,12 +737,12 @@ program:	; start of program?
         TIMES (progloc + 310*max_length)-($-$$) DB 0x0d
         db " x=x+xstep",0x0d   
         TIMES (progloc + 320*max_length)-($-$$) DB 0x0d
-        db " if x<=xend goto 100",0x0d   
+        db " if x-268 goto 100",0x0d
         TIMES (progloc + 330*max_length)-($-$$) DB 0x0d
         db " print",0x0d   
         TIMES (progloc + 340*max_length)-($-$$) DB 0x0d
         db " y=y+ystep",0x0d   
         TIMES (progloc + 350*max_length)-($-$$) DB 0x0d
-        db " if y<=yl goto 90",0x0d   
+        db " if y-317 goto 90",0x0d
 prog_end:
         end
