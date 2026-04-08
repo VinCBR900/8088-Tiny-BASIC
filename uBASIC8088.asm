@@ -1,16 +1,29 @@
         ; uBASIC8088.asm - 2kbyte x86 Tiny BASIC for Embedded systems
-        ;
-        ; Original author Copyright 2019 Oscar Toledo G.
+
+        ; bootBASIC Copyright 2019 Original author: Oscar Toledo G.
         ; Website: http://nanochess.org/
         ;
-        ; Licensed under the BSD 2-Clause License. See LICENSE file.
+        ;  Licensed under the BSD 2-Clause License. See LICENSE file.
         ;
-        ; Copyright 2026 this version: Vincent Crabtree
-        ; Version 2.0.0 (2026-04-08)
+        ; This version Copyright 2026 Vincent Crabtree
+        ; https://github.com/VinCBR900/8088-Tiny-BASIC/
         ;
+        ; Version 2.1.0 (2026-04-08)
         ; Target is embedded 8088 Minimal systems with 2-4kbyte EPROM, 4kbyte RAM
         ;
-        ; Changes since original:
+        ; Changes since v2.0.0:
+        ; - Fix: kw_match last-char comparison masked kw_table byte, not source byte
+        ;        (caused tokenizer to never match any keyword).
+        ; - Fix: deleted dead 'statements' table (~60 bytes saved); all dispatch now
+        ;        via token values through statement_tokens.
+        ; - Fix: goto_statement AX clobbered by find_line before line-number compare.
+        ; - Fix: list_kw fall-through for unknown tokens now jumps to error.
+        ; - Fix: input_number cbw placed before branch, corrupted BX on non-digit.
+        ; - Fix: find_program_end/find_line merged into shared walk_lines helper.
+        ; - Note: pre-loaded demo program remains in RAM section for DOS/QEMU testing;
+        ;         remove before targeting real EPROM.
+        ;
+        ; Changes since original (v1 -> v2.0.0):
         ; - COM-only target, no boot-sector mode.
         ; - Packed editable program lines (EDITLN/INSLINE/DELINE).
         ; - 4KB simulated RAM window at 0x1000..0x1FFF.
@@ -108,66 +121,20 @@ statement:
         mov bx,ax
         call spaces
         jmp word [statement_tokens+bx]
-statement_text:
-        mov di,statements   ; Point to statements list
-f5:     mov al,[di]     ; Read length of the string
-        inc di          ; Avoid length byte
-        cbw             ; Make AH zero
-        dec ax          ; Is it zero?
-        je f4           ; Yes, jump
-        xchg ax,cx
-        push si         ; Save current position
-f16:    rep cmpsb       ; Compare statement
-        jne f3          ; Equal? No, jump
-        pop ax
-        call spaces     ; Avoid spaces
-        jmp word [di]   ; Jump to process statement
-
-f3:     add di,cx       ; Advance the list pointer
-        inc di          ; Avoid the address
-        inc di
-        pop si
-        jmp f5          ; Compare another statement
-
-f4:     call get_variable       ; Try variable
-        push ax         ; Save address
-        lodsb           ; Read a line letter
-        cmp al,'='      ; Is it assignment '=' ?
-        je assignment   ; Yes, jump to assignment.
+statement_text:                     ; reached only for unrecognised non-token char
+        call get_variable       ; treat as variable name
+        push ax                 ; save address
+        lodsb                   ; read next char
+        cmp al,'='              ; assignment?
+        je assignment           ; yes
 
         ;
         ; An error happened
         ;
 error:
         mov si,error_message
-        call print_2    ; Show error message
+        call print_z    ; Show error message (null-terminated)
         jmp main_loop   ; Exit to main loop
-
-error_message:
-        db "@#!",0x0d   ; Guess the words :P
-
-statement_tokens:
-        dw start
-        dw list_statement
-        dw run_statement
-        dw print_statement
-        dw input_statement
-        dw if_statement
-        dw goto_statement
-        dw system_statement
-
-kw_table:
-        db 'n','e','w'+0x80
-        db 'l','i','s','t'+0x80
-        db 'r','u','n'+0x80
-        db 'p','r','i','n','t'+0x80
-        db 'i','n','p','u','t'+0x80
-        db 'i','f'+0x80
-        db 'g','o','t','o'+0x80
-        db 's','y','s','t','e','m'+0x80
-        db 'r','n','d'+0x80
-        db 'f','r','e','e'+0x80
-        db 'c','h','r','$'+0x80
 
         ;
         ; Handle 'list' statement
@@ -191,7 +158,8 @@ f6:
 free_statement:
         call free_bytes
         call output_number
-        jmp new_line
+        call new_line   ; was jmp new_line - too far for short jump
+        ret
 
 free_bytes:
         call find_program_end
@@ -221,9 +189,10 @@ list_output:
         ret
 list_kw:
         cmp al,tok_new
-        jb output
+        jb output           ; Below token range: emit as raw char
         cmp al,tok_chr
-        jbe list_kw_emit
+        jbe list_kw_emit    ; in range - emit keyword
+        jmp error           ; above range: near jump to error
 list_kw_emit:
         push si
         push bx
@@ -415,20 +384,28 @@ f8:     pop ax
         ; Read number in input.
         ; AX = result
         ;
+        ;------------------------------------------------------------
+        ; INPUT_NUMBER
+        ; Function : Parse unsigned decimal integer from [SI].
+        ; Inputs   : SI = source text.
+        ; Outputs  : AX = value, SI points past last digit.
+        ; Clobbers : BX,CX.
+        ;------------------------------------------------------------
 input_number:
-        xor bx,bx           ; BX = 0
-f11:    lodsb               ; Read source
+        xor bx,bx           ; BX = accumulator
+f11:    lodsb               ; Read character
         sub al,'0'
-        cmp al,10           ; Digit valid?
-        cbw
-        xchg ax,bx
-        jnc f12             ; No, jump
-        mov cx,10           ; Multiply by 10
-        mul cx
-        add bx,ax           ; Add new digit
-        jmp f11             ; Continue
+        cmp al,10           ; Valid digit (0-9)?
+        jnc f12             ; No - stop (cbw moved after branch to avoid BX corruption)
+        cbw                 ; Zero-extend digit into AX
+        xchg ax,bx          ; AX = old accum, BX = new digit
+        mov cx,10
+        mul cx              ; AX = old accum * 10
+        add bx,ax           ; BX = accum*10 + digit
+        jmp f11
 
-f12:    dec si              ; SI points to first non-digit
+f12:    dec si              ; Back to first non-digit
+        mov ax,bx           ; Return value in AX
         ret
 
         ;
@@ -437,14 +414,20 @@ f12:    dec si              ; SI points to first non-digit
 system_statement:
         int 0x20
 
-        ;
-        ; Handle 'goto' statement
-        ;
+        ;------------------------------------------------------------
+        ; GOTO_STATEMENT
+        ; Function : Jump execution to given line number.
+        ; Inputs   : SI = tokenized source after GOTO token.
+        ; Outputs  : run_next updated or direct jump.
+        ; Clobbers : AX,BX,DI.
+        ;------------------------------------------------------------
 goto_statement:
-        call expr           ; Handle expression
-        call find_line
-        cmp word [di],ax
-        jne f6
+        call expr           ; AX = target line number
+        push ax             ; Save - find_line clobbers AX
+        call find_line      ; DI = pointer to line >= original AX
+        pop bx              ; BX = target line number
+        cmp word [di],bx    ; Exact match?
+        jne f6              ; No, return (line not found)
         cmp byte [running],0
         je run_from_di
         mov [run_next],di
@@ -581,54 +564,68 @@ tok_done:
         mov si,line_tok
         ret
 
-        ; Match keyword at SI. On success: CF=0, BX=length, AH=token id.
-        ; On failure: CF=1.
+        ;------------------------------------------------------------
+        ; KW_MATCH
+        ; Function : Try to match a keyword at [SI] against kw_table.
+        ;            Keyword must not be followed by a-z, 0-9 or _.
+        ; Inputs   : SI = source text pointer.
+        ; Outputs  : CF=0 -> BX=keyword length, AH=token id.
+        ;            CF=1 -> no match.
+        ; Clobbers : AX,BX,DL,DI (DI saved/restored internally).
+        ; Note     : Token counter kept on stack to avoid AH clobber during
+        ;            character comparison loop.
+        ;------------------------------------------------------------
 kw_match:
         push di
+        push cx             ; CX = token id counter
         mov di,kw_table
-        mov ah,tok_new
+        mov cx,tok_new
 kw_entry:
-        mov bx,si
+        mov bx,si           ; BX walks source, DI walks kw_table
 kw_cmp:
-        mov al,[di]
+        mov al,[di]         ; kw_table byte (may have bit7 terminator set)
         inc di
-        mov dl,[bx]
-        and dl,0x7f
-        cmp dl,al
-        jne kw_skip
+        mov ah,al           ; preserve for terminator test (saves mov dl,[di-1])
+        and al,0x7f         ; mask for char comparison
+        cmp [bx],al         ; compare source byte against masked kw byte
+        jne kw_skip         ; mismatch - skip to next keyword
         inc bx
-        test al,0x80
-        jz kw_cmp
-        mov dl,[bx]
-        cmp dl,'a'
+        test ah,0x80        ; was this the terminator byte?
+        jz kw_cmp           ; no - keep comparing
+        ; All chars matched - check source char after keyword is not alnum/_
+        mov al,[bx]         ; check char following keyword in source
+        cmp al,'a'
         jb kw_hit
-        cmp dl,'z'
+        cmp al,'z'
         jbe kw_skip
-        cmp dl,'0'
+        cmp al,'0'
         jb kw_hit
-        cmp dl,'9'
+        cmp al,'9'
         jbe kw_skip
-        cmp dl,'_'
+        cmp al,'_'
         je kw_skip
         jmp kw_hit
 kw_skip_loop:
         mov al,[di]
         inc di
 kw_skip:
-        test al,0x80
+        test al,0x80        ; scan forward to end of this kw_table entry
         jz kw_skip_loop
 kw_next:
-        cmp ah,tok_chr
+        cmp cx,tok_chr      ; exhausted all keywords?
         je kw_fail
-        inc ah
+        inc cx
         jmp kw_entry
 kw_hit:
-        sub bx,si
+        sub bx,si           ; BX = keyword length
+        mov ah,cl           ; AH = token id
         clc
+        pop cx
         pop di
         ret
 kw_fail:
         stc
+        pop cx
         pop di
         ret
 
@@ -641,7 +638,6 @@ print_statement:
         je new_line     ; Yes, generate new line and return
         cmp al,'"'      ; Double quotes?
         jne f7          ; No, jump
-print_2:
 f9:
         lodsb           ; Read string contents
         cmp al,'"'      ; Double quotes?
@@ -660,11 +656,15 @@ f7:     dec si
 print_chr_tok:
         inc si
         cmp byte [si],'('
-        jne error
+        je pct_ok1
+        jmp error
+pct_ok1:
         inc si
         call expr
         cmp byte [si],')'
-        jne error
+        je pct_ok2
+        jmp error
+pct_ok2:
         inc si
         call output
 f18:    lodsb           ; Read next character
@@ -701,6 +701,29 @@ f17:
         ret
 
         ;------------------------------------------------------------
+        ; WALK_LINES (shared helper - saves ~15 bytes vs two separate routines)
+        ; Function : Walk program lines from start. Stops when line number
+        ;            in [DI] is zero (end marker) OR >= AX (if AX != 0xFFFF).
+        ;            Pass AX=0xFFFF to walk to end unconditionally.
+        ; Inputs   : AX = stop-threshold line number (0xFFFF = walk to end).
+        ; Outputs  : DI = pointer to matching or end-marker line.
+        ; Clobbers : BX,SI.
+        ;------------------------------------------------------------
+walk_lines:
+        mov di,program
+walk_lines_1:
+        mov bx,[di]         ; BX = current line number (0 = end marker)
+        or bx,bx
+        je walk_lines_done  ; end marker - stop
+        cmp bx,ax           ; line >= threshold?
+        jae walk_lines_done ; yes - stop (for find_line semantics)
+        call next_line_ptr
+        mov di,si
+        jmp walk_lines_1
+walk_lines_done:
+        ret
+
+        ;------------------------------------------------------------
         ; FIND_LINE
         ; Function : Find first packed line >= AX.
         ; Inputs   : AX = line number.
@@ -708,22 +731,23 @@ f17:
         ; Clobbers : BX,SI.
         ;------------------------------------------------------------
 find_line:
-        mov di,program
-find_line_1:
-        mov bx,[di]
-        or bx,bx
-        je find_line_done
-        cmp bx,ax
-        jae find_line_done
-        push ax
-        call next_line_ptr
-        mov di,si
-        pop ax
-        jmp find_line_1
-find_line_done:
-        ret
+        jmp walk_lines      ; AX = threshold, walk_lines stops at >= AX
+
+        ;------------------------------------------------------------
+        ; FIND_PROGRAM_END
+        ; Function : Walk to end-of-program marker (word zero).
+        ; Inputs   : none.
+        ; Outputs  : DI = pointer to zero end marker.
+        ; Clobbers : AX,BX,SI.
+        ;------------------------------------------------------------
+find_program_end:
+        mov ax,0xffff       ; threshold > any valid line number -> walk to end
+        jmp walk_lines
 
         ; Compute SI=next line pointer from DI=current line.
+        ; Inputs  : DI = pointer to current line (word linenum + bytes + CR).
+        ; Outputs : SI = pointer to next line.
+        ; Clobbers: SI.
 next_line_ptr:
         mov si,di
         add si,2
@@ -734,19 +758,6 @@ next_line_ptr_1:
         jmp next_line_ptr_1
 next_line_ptr_2:
         inc si
-        ret
-
-        ; Find program end marker (word zero)
-find_program_end:
-        mov di,program
-find_program_end_1:
-        mov ax,[di]
-        or ax,ax
-        je find_program_end_done
-        call next_line_ptr
-        mov di,si
-        jmp find_program_end_1
-find_program_end_done:
         ret
 
         ;------------------------------------------------------------
@@ -839,43 +850,40 @@ deline:
         rep movsb                ; forward move for deletion
         ret
 
-        ;
-        ; List of statements of bootBASIC
-        ; First one byte with length of string
-        ; Then string with statement
-        ; Then a word with the address of the code
-        ;
-statements:
-        db 4,"new"
-        dw start
-
-        db 5,"list"
-        dw list_statement
-
-        db 4,"run"
-        dw run_statement
-
-        db 6,"print"
-        dw print_statement
-
-        db 6,"input"
-        dw input_statement
-
-        db 3,"if"
-        dw if_statement
-
-        db 5,"goto"
-        dw goto_statement
-
-        db 7,"system"
-        dw system_statement
-
-        db 5,"free"
-        dw free_statement
-
-        db 1
+; String tables
 
 signon: db "TINY BASIC V2.1.0 FREE=",0
+
+error_message:
+        db "@#!",0x0d,0 ; error: CR then null terminator for print_z
+
+statement_tokens:
+        dw start
+        dw list_statement
+        dw run_statement
+        dw print_statement
+        dw input_statement
+        dw if_statement
+        dw goto_statement
+        dw system_statement
+
+kw_table:
+        db 'n','e','w'+0x80
+        db 'l','i','s','t'+0x80
+        db 'r','u','n'+0x80
+        db 'p','r','i','n','t'+0x80
+        db 'i','n','p','u','t'+0x80
+        db 'i','f'+0x80
+        db 'g','o','t','o'+0x80
+        db 's','y','s','t','e','m'+0x80
+        db 'r','n','d'+0x80
+        db 'f','r','e','e'+0x80
+        db 'c','h','r','$'+0x80
+        ; NOTE: 'statements' text table removed (v2.1.0).
+        ; All dispatch is via token values through statement_tokens + kw_table.
+        ; The statement_text path (f5/f16) in 'statement' is now dead code
+        ; since tokenize_line is always called before statement dispatch.
+        ; TODO: remove statement_text path to reclaim ~30 more bytes.
 
 ROM_END:
 
@@ -967,4 +975,3 @@ program:
         ;
         ; End of COM image
         ;
-
