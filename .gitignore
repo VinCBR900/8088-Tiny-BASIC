@@ -1,3 +1,6 @@
+
+# Build artifacts
 .DS_Store
 backup/
-
+basic.com
+basic.img
