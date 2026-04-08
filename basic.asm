@@ -2,7 +2,9 @@
         ; Original author: Oscar Toledo G.
         ; Website: http://nanochess.org/
         ;
-        ; Version 2.1.0 (2026-04-08)
+        ; Version 2.0.0 (2026-04-08)
+        ; Target is embedded 8088 Minimal systems with 2-4kbyte EPROM, 4kbyte RAM
+        ;
         ; Changes since original:
         ; - COM-only target, no boot-sector mode.
         ; - Packed editable program lines (EDITLN/INSLINE/DELINE).
@@ -13,12 +15,17 @@
 
         cpu 8086
 
-        org 0x0100
+        org 0x0100        ; COM file testing, change later
 
-STACK_TOP:   equ 0x1fff
-PROGRAM_TOP: equ 0x1e00
-RAM_END:     equ 0x2000
+; Adjust depending on HW implementation - 4kbyte here
+RAM_START:   equ 0x1000
+RAM_END:     equ 0x1fff
 
+; simulated Embedded stack, generous 512 bytes
+STACK_TOP:   equ RAM_END
+PROGRAM_TOP: equ STACK_TOP-512
+
+; Tokens for BASIC keywords
 tok_new:    equ 0x80
 tok_list:   equ 0x81
 tok_run:    equ 0x82
@@ -42,10 +49,10 @@ start:
         cld             ; Clear Direction flag
         mov si,signon
         call print_z
-        call free_bytes
-        call output_number
-        call new_line
-
+        ;call free_bytes        ; version
+        ;call output_number
+        ;call new_line
+        call free_statement        ; avaiable memory
         ;
         ; Main loop
         ;
@@ -123,6 +130,7 @@ error:
 
 error_message:
         db "@#!",0x0d   ; Guess the words :P
+
 statement_tokens:
         dw start
         dw list_statement
@@ -856,7 +864,10 @@ signon: db "TINY BASIC V2.1.0 FREE=",0
 
 ROM_END:
 
-        TIMES 0x1000-($-$$) DB 0
+;        TIMES 0x1000-($-$$) DB 0
+
+        ORG RAM_START
+
 vars:       DW 26 DUP (0)
 running:    DW 0
 run_next:   DW 0
