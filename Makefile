@@ -3,22 +3,20 @@
 src = basic.asm
 
 .PHONY: all
-all: basic.img basic.com
-
-basic.img: $(src)
-	nasm -f bin -o $@ $(src)
+all: basic.com
 
 basic.com: $(src)
-	nasm -f bin -o $@ -Dcom_file=1 $(src)
+	nasm -f bin -l basic.lst -o $@ $(src)
+	@echo "ROM_END offset (last code byte boundary): 0x$$(awk '/TIMES 0x1000-/{print $$2; exit}' basic.lst)"
 
 .PHONY: clean
 clean:
-	$(RM) basic.img basic.com
+	$(RM) basic.com
 
 .PHONY: rundosbox
 rundosbox: basic.com
 	dosbox $<
 
 .PHONY: runqemu
-runqemu: basic.img
-	qemu-system-i386 -fda basic.img
+runqemu: basic.com
+	@echo "Provide a DOS image/environment to run basic.com under qemu."
