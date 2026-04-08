@@ -156,7 +156,7 @@ progloc:    equ 0x8000  ; Program address
 
 stack:      equ 0xff00  ; Stack address
 max_line:   equ 1000    ; First unavailable line number
-max_length: equ 32      ; Maximum length of line inc CR
+max_length: equ 20      ; Maximum length of line inc CR
 max_size:   equ max_line*max_length ; Max. program size
 
 	SECTION .text
@@ -189,7 +189,7 @@ main_loop:
         xchg ax,di      
 ;       mov cx,max_length       ; CX loaded with this value in 'find_line'
         rep movsb       ; Copy entered line into program
-        ret
+        ret		; pops earlier main_loop
 
 new_statement:
 	mov di,program  ; Point to program space start
@@ -233,10 +233,18 @@ f4:     call get_variable       ; Try variable
 
         ;
         ; An error happened
+        ; BUG: Cant get current BASIC line number
         ;
 error:
-        mov si,error_message
-        call print_2    ; Show error message
+	push ax
+	;mov si,error_message
+        ;call print_2    ; Show error message
+        call new_line
+        mov al,'@'
+        call output
+        pop ax
+        call output_number
+        call new_line
         jmp main_loop   ; Exit to main loop
 
         ;
@@ -386,9 +394,12 @@ spaces_2:
         ; The interpreter depends on this routine not modifying AX
         ;
 spaces:
-        cmp byte [si],' '   ; Space found?
-        je spaces_2         ; Yes, move one character ahead.
-        ret                 ; No, return.
+        cmp byte [si],0x0d    ; Stop at end of line
+        je space_ret
+        cmp byte [si],' '     ; Space?
+        je spaces_2           ; Yes
+space_ret:
+	ret
 
         ;
         ; Output unsigned number 
@@ -598,9 +609,9 @@ error_message:
 
 program:	; start of program?
         TIMES (progloc + 10*max_length)-($-$$) DB 0x0d
-        db " rem 16-bit fixed Pt",0x0d      
+        db " rem 16-bit fixed pt",0x0d      
         TIMES (progloc + 20*max_length)-($-$$) DB 0x0d
-	db " rem Mandelbrot",0x0d      
+	db " rem mandelbrot",0x0d      
         TIMES (progloc + 30*max_length)-($-$$) DB 0x0d
         db " y=-307",0x0d      
         TIMES (progloc + 40*max_length)-($-$$) DB 0x0d
@@ -630,11 +641,11 @@ program:	; start of program?
         TIMES (progloc + 160*max_length)-($-$$) DB 0x0d
         db " g=(d*d)/256",0x0d   
         TIMES (progloc + 170*max_length)-($-$$) DB 0x0d
-        db " m=(f+g)/1025",0x0d
+        db " m=(f+g)/1024",0x0d
         TIMES (progloc + 171*max_length)-($-$$) DB 0x0d
         db " if m goto 220",0x0d
         TIMES (progloc + 180*max_length)-($-$$) DB 0x0d
-        db " d=((c*d)/128)+b",0x0d   
+        db " d=(c*d)/128+b",0x0d   
         TIMES (progloc + 190*max_length)-($-$$) DB 0x0d
         db " c=f-g+a",0x0d   
         TIMES (progloc + 200*max_length)-($-$$) DB 0x0d
@@ -645,8 +656,6 @@ program:	; start of program?
         db " if i-8 goto 223",0x0d
         TIMES (progloc + 221*max_length)-($-$$) DB 0x0d
         db " goto 290",0x0d
-        TIMES (progloc + 222*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 223*max_length)-($-$$) DB 0x0d
         db " if i-9 goto 225",0x0d
         TIMES (progloc + 224*max_length)-($-$$) DB 0x0d
@@ -663,8 +672,6 @@ program:	; start of program?
         db " if i-12 goto 233",0x0d
         TIMES (progloc + 231*max_length)-($-$$) DB 0x0d
         db " goto 300",0x0d
-        TIMES (progloc + 232*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 233*max_length)-($-$$) DB 0x0d
         db " if i-13 goto 235",0x0d
         TIMES (progloc + 234*max_length)-($-$$) DB 0x0d
@@ -681,20 +688,14 @@ program:	; start of program?
         db " if i-16 goto 242",0x0d
         TIMES (progloc + 240*max_length)-($-$$) DB 0x0d
         db " goto 300",0x0d
-        TIMES (progloc + 241*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 242*max_length)-($-$$) DB 0x0d
         db " if i-4 goto 245",0x0d
         TIMES (progloc + 243*max_length)-($-$$) DB 0x0d
         db " goto 270",0x0d
-        TIMES (progloc + 244*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 245*max_length)-($-$$) DB 0x0d
         db " if i-5 goto 248",0x0d
         TIMES (progloc + 246*max_length)-($-$$) DB 0x0d
         db " goto 270",0x0d
-        TIMES (progloc + 247*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 248*max_length)-($-$$) DB 0x0d
         db " if i-6 goto 251",0x0d
         TIMES (progloc + 249*max_length)-($-$$) DB 0x0d
@@ -705,20 +706,14 @@ program:	; start of program?
         db " if i-7 goto 254",0x0d
         TIMES (progloc + 252*max_length)-($-$$) DB 0x0d
         db " goto 280",0x0d
-        TIMES (progloc + 253*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 254*max_length)-($-$$) DB 0x0d
         db " if i-2 goto 257",0x0d
         TIMES (progloc + 255*max_length)-($-$$) DB 0x0d
         db " goto 260",0x0d
-        TIMES (progloc + 256*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 257*max_length)-($-$$) DB 0x0d
         db " if i-3 goto 250",0x0d
         TIMES (progloc + 258*max_length)-($-$$) DB 0x0d
         db " goto 260",0x0d
-        TIMES (progloc + 259*max_length)-($-$$) DB 0x0d
-        db 0x0d
         TIMES (progloc + 260*max_length)-($-$$) DB 0x0d
         db " print ",0x22,".",0x22,";",0x0d
         TIMES (progloc + 261*max_length)-($-$$) DB 0x0d
@@ -742,12 +737,12 @@ program:	; start of program?
         TIMES (progloc + 310*max_length)-($-$$) DB 0x0d
         db " x=x+p",0x0d   
         TIMES (progloc + 320*max_length)-($-$$) DB 0x0d
-        db " if x-268 goto 100",0x0d
+        db " if x-256 goto 100",0x0d
         TIMES (progloc + 330*max_length)-($-$$) DB 0x0d
         db " print",0x0d   
         TIMES (progloc + 340*max_length)-($-$$) DB 0x0d
         db " y=y+t",0x0d   
         TIMES (progloc + 350*max_length)-($-$$) DB 0x0d
-        db " if y-317 goto 90",0x0d
-prog_end:
+        db " if y-307 goto 90",0x0d
+prog_end:  
         end
