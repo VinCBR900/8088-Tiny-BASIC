@@ -2,6 +2,7 @@
         ; Original author: Oscar Toledo G.
         ; Website: http://nanochess.org/
         ;
+        ; This version Vincent Crabtree
         ; Version 2.0.0 (2026-04-08)
         ; Target is embedded 8088 Minimal systems with 2-4kbyte EPROM, 4kbyte RAM
         ;
