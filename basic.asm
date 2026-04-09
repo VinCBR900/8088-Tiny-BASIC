@@ -155,6 +155,7 @@ progloc:    equ 0x8000  ; Program address
                         ; (notice optimizations dependent on this address)
 
 stack:      equ 0xff00  ; Stack address
+current_line:   equ vars-2 ; Current BASIC line during RUN
 max_line:   equ 1000    ; First unavailable line number
 max_length: equ 20      ; Maximum length of line inc CR
 max_size:   equ max_line*max_length ; Max. program size
@@ -236,13 +237,15 @@ f4:     call get_variable       ; Try variable
         ; BUG: Cant get current BASIC line number
         ;
 error:
-	push ax
-	;mov si,error_message
-        ;call print_2    ; Show error message
         call new_line
         mov al,'@'
         call output
-        pop ax
+        cmp sp,stack-2      ; Interactive mode has no current line
+        je f33
+        mov ax,[current_line]
+        jmp f34
+f33:    xor ax,ax
+f34:
         call output_number
         call new_line
         jmp main_loop   ; Exit to main loop
@@ -422,7 +425,7 @@ f26:
         call f26            ; Yes, output left side
 f8:     pop ax
         add al,'0'          ; Output remainder as...
-        jmp short output    ; ...ASCII digit
+        jmp output          ; ...ASCII digit
 
         ;
         ; Read number in input.
@@ -470,6 +473,13 @@ f27:    cmp sp,stack-2      ; In interactive mode?
         mov [stack-4],ax    ; No, replace the saved address of next line
         ret
 f31:
+        push ax
+        sub ax,program       ; Convert pointer into BASIC line number
+        xor dx,dx
+        mov cx,max_length
+        div cx
+        mov [current_line],ax
+        pop ax
         push ax
         pop si
         add ax,max_length   ; Point to next line
@@ -618,7 +628,7 @@ error_message:
 
 program:	; start of program?
         TIMES (progloc + 10*max_length)-($-$$) DB 0x0d
-        db " rem 16-bit fixed pt",0x0d      
+        db " rem 16-bit fixedpt",0x0d      
         TIMES (progloc + 20*max_length)-($-$$) DB 0x0d
 	db " rem mandelbrot",0x0d      
         TIMES (progloc + 30*max_length)-($-$$) DB 0x0d
@@ -752,6 +762,6 @@ program:	; start of program?
         TIMES (progloc + 340*max_length)-($-$$) DB 0x0d
         db " y=y+t",0x0d   
         TIMES (progloc + 350*max_length)-($-$$) DB 0x0d
-        db " if y-307 goto 90",0x0d
+        db " if y-317 goto 90",0x0d
 prog_end:  
         end
