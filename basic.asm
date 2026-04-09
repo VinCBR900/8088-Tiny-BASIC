@@ -248,6 +248,12 @@ error:
         jmp main_loop   ; Exit to main loop
 
         ;
+        ; Handle 'rem' statement (comment)
+        ;
+rem_statement:
+        ret
+
+        ;
         ; Handle 'list' statement
         ;
 list_statement:
@@ -576,6 +582,9 @@ statements:
 
         db 5,"list"
         dw list_statement
+
+        db 4,"rem"
+        dw rem_statement
 
         db 4,"run"
         dw run_statement
