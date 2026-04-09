@@ -473,15 +473,13 @@ f27:    cmp sp,stack-2      ; In interactive mode?
         mov [stack-4],ax    ; No, replace the saved address of next line
         ret
 f31:
-        push ax
+        mov si,ax
         sub ax,program       ; Convert pointer into BASIC line number
-        xor dx,dx
+        cwd
         mov cx,max_length
         div cx
         mov [current_line],ax
-        pop ax
-        push ax
-        pop si
+        mov ax,si
         add ax,max_length   ; Point to next line
         push ax             ; Save for next time (this goes into address stack-4)
         call statement      ; Process current statement
@@ -501,8 +499,7 @@ f31:
 input_line:
         call output
         mov si,line
-        push si
-        pop di          ; Target for writing line
+        mov di,si       ; Target for writing line
 f1:     call input_key  ; Read keyboard
         stosb           ; Save key in buffer
         cmp al,0x08     ; Backspace?
