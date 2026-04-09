@@ -224,7 +224,7 @@ f3:     add di,cx       ; Advance the list pointer
         inc di          ; Avoid the address
         inc di
         pop si
-        jmp f5          ; Compare another statement
+        jmp short f5          ; Compare another statement
 
 f4:     call get_variable       ; Try variable
         push ax         ; Save address
@@ -234,7 +234,6 @@ f4:     call get_variable       ; Try variable
 
         ;
         ; An error happened
-        ; BUG: Cant get current BASIC line number
         ;
 error:
         call new_line
@@ -243,18 +242,14 @@ error:
         cmp sp,stack-2      ; Interactive mode has no current line
         je f33
         mov ax,[current_line]
-        jmp f34
+        jmp short f34
 f33:    xor ax,ax
 f34:
         call output_number
         call new_line
         jmp main_loop   ; Exit to main loop
 
-        ;
-        ; Handle 'rem' statement (comment)
-        ;
-rem_statement:
-        ret
+
 
         ;
         ; Handle 'list' statement
@@ -276,9 +271,14 @@ f30:    pop ax
         inc ax          ; Go to next line
         cmp ax,max_line ; Finished?
         jne f29         ; No, continue
-f6:
-        ret
+f6:	; drop through
 
+        ;
+        ; Handle 'rem' statement (comment)
+        ;
+rem_statement:
+        ret
+        
         ;
         ; Handle 'input' statement
         ;
@@ -310,13 +310,13 @@ f20:    cmp byte [si],'-'   ; Subtraction operator?
         call expr1_2        ; Call second tier
 f15:    pop cx
         add ax,cx           ; Addition
-        jmp f20             ; Find more operators
+        jmp short f20             ; Find more operators
 
 f19:
         push ax
         call expr1_2        ; Call second tier
         neg ax              ; Negate it (a - b converted to a + -b)
-        jmp f15
+        jmp short f15
 
         ;
         ; Handle an expression.
@@ -335,7 +335,7 @@ f21:    cmp byte [si],'/'   ; Division operator?
         call expr2_2        ; Call third tier
         pop cx
         imul cx             ; Multiplication
-        jmp f21             ; Find more operators
+        jmp short f21             ; Find more operators
 
 f23:
         push ax
@@ -344,7 +344,7 @@ f23:
         xchg ax,cx
         cwd                 ; Expand AX to DX:AX
         idiv cx             ; Signed division
-        jmp f21             ; Find more operators
+        jmp short f21             ; Find more operators
 
         ;
         ; Handle an expression.
@@ -442,16 +442,10 @@ f11:    lodsb               ; Read source
         mov cx,10           ; Multiply by 10
         mul cx
         add bx,ax           ; Add new digit
-        jmp f11             ; Continue
+        jmp short f11             ; Continue
 
 f12:    dec si              ; SI points to first non-digit
         ret
-
-        ;
-        ; Handle 'system' statement
-        ;
-system_statement:
-        int 0x20
 
         ;
         ; Handle 'goto' statement
@@ -609,14 +603,10 @@ statements:
         dw goto_statement
 
         db 7,"system"
-        dw system_statement
+        dw 0 ; com file address zero contains INT 20h
 
 
         db 1
-
-error_message:
-        db "@#!",0x0d   ; Guess the words :P
-
         
 	; Cant use two ORGS so pad to Progloc
         TIMES progloc-($-$$) DB 0x0d
@@ -760,5 +750,5 @@ program:	; start of program?
         db " y=y+t",0x0d   
         TIMES (progloc + 350*max_length)-($-$$) DB 0x0d
         db " if y-l goto 90",0x0d
-prog_end:  
+prog_end:   
         end
