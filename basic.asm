@@ -632,17 +632,17 @@ program:	; start of program?
         TIMES (progloc + 20*max_length)-($-$$) DB 0x0d
 	db " rem mandelbrot",0x0d      
         TIMES (progloc + 30*max_length)-($-$$) DB 0x0d
-        db " y=-307",0x0d      
+        db " y=-48",0x0d      
         TIMES (progloc + 40*max_length)-($-$$) DB 0x0d
-        db " l=307",0x0d   
+        db " l=51",0x0d   
         TIMES (progloc + 50*max_length)-($-$$) DB 0x0d
-        db " s=-512",0x0d   
+        db " s=-64",0x0d   
         TIMES (progloc + 60*max_length)-($-$$) DB 0x0d
-        db " e=256",0x0d   
+        db " e=32",0x0d   
         TIMES (progloc + 70*max_length)-($-$$) DB 0x0d
-        db " t=24",0x0d   
+        db " t=3",0x0d   
         TIMES (progloc + 80*max_length)-($-$$) DB 0x0d
-        db " p=12",0x0d   
+        db " p=2",0x0d   
         TIMES (progloc + 90*max_length)-($-$$) DB 0x0d
         db " x=s",0x0d   
         TIMES (progloc + 100*max_length)-($-$$) DB 0x0d
@@ -656,15 +656,15 @@ program:	; start of program?
         TIMES (progloc + 140*max_length)-($-$$) DB 0x0d
         db " i=0",0x0d   
         TIMES (progloc + 150*max_length)-($-$$) DB 0x0d
-        db " f=(c*c)/256",0x0d   
+        db " f=(c*c)/32",0x0d   
         TIMES (progloc + 160*max_length)-($-$$) DB 0x0d
-        db " g=(d*d)/256",0x0d   
+        db " g=(d*d)/32",0x0d   
         TIMES (progloc + 170*max_length)-($-$$) DB 0x0d
-        db " m=(f+g)/1024",0x0d
+        db " m=(f+g)/128",0x0d
         TIMES (progloc + 171*max_length)-($-$$) DB 0x0d
         db " if m goto 220",0x0d
         TIMES (progloc + 180*max_length)-($-$$) DB 0x0d
-        db " d=(c*d)/128+b",0x0d   
+        db " d=(c*d)/16+b",0x0d   
         TIMES (progloc + 190*max_length)-($-$$) DB 0x0d
         db " c=f-g+a",0x0d   
         TIMES (progloc + 200*max_length)-($-$$) DB 0x0d
@@ -756,12 +756,12 @@ program:	; start of program?
         TIMES (progloc + 310*max_length)-($-$$) DB 0x0d
         db " x=x+p",0x0d   
         TIMES (progloc + 320*max_length)-($-$$) DB 0x0d
-        db " if x-256 goto 100",0x0d
+        db " if x-32 goto 100",0x0d
         TIMES (progloc + 330*max_length)-($-$$) DB 0x0d
         db " print",0x0d   
         TIMES (progloc + 340*max_length)-($-$$) DB 0x0d
         db " y=y+t",0x0d   
         TIMES (progloc + 350*max_length)-($-$$) DB 0x0d
-        db " if y-317 goto 90",0x0d
+        db " if y-l goto 90",0x0d
 prog_end:  
         end
