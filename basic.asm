@@ -18,10 +18,13 @@
         ; See LICENSE
         ;
         ; This version Copyright 2026 Vincent Crabtree
+		; --------------------------------------------
         ; This modification is functionally identical to Oscar's version,
         ; but designed to run in 8bitworkshop and also includes
         ; a Mandelbrot demo pre-typed. It also adds a NEW command to erase
         ; the Demo program if desired.
+		;
+	  	; http://8bitworkshop.com/v3.12.1/?redir.html?platform=x86&githubURL=https%3A%2F%2Fgithub.com%2FVinCBR900%2FbootBASIC&file=basic.asm
         ;
         ; USER'S MANUAL:
         ;
@@ -570,6 +573,8 @@ find_line:
         mul cx
         add ax,program
         ret
+do_system:
+		int 0x20
 
         ;
         ; List of statements of bootBASIC
@@ -603,8 +608,7 @@ statements:
         dw goto_statement
 
         db 7,"system"
-        dw 0 ; com file address zero contains INT 20h
-
+        dw do_system ; com file address zero should contain INT 20h but doesnt work
 
         db 1
         
