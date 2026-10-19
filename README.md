@@ -1,4 +1,4 @@
-# 8086-Tiny-BASIC
+# 8088-Tiny-BASIC
 > **AI Disclosure**: This code was developed with the assistance of AI (Claude by Anthropic, and Gemini by Google). The architecture, code, tests, and documentation were produced collaboratively between a human developer and an AI assistant. All code has been reviewed by the author.
 >Specifically:
 > - I architected, reviewed, hand optimized.
