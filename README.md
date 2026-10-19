@@ -12,7 +12,7 @@ Here we have two Tiny BASICs for the 8088 as inspired by Steve Ciarcia's article
   * **Mini-BASIC 32bit float BASIC - TRIG/Transcendental** - includes `SIN`/`COS`/`TAN`/`ASIN`/`ACOS`/`ATAN`, and `LN`/`EXP`/`LOG`/`SQRT`,`^(Power)` and bitbang serial in 4kbytes of ROM
 
 You can play with these online at the link below - both versions include a showcase BASIC demo - type `RUN` to execute, and `LIST` to view.
-[https://vincbr900.github.io/8086-Tiny-BASIC/](https://vincbr900.github.io/8086-Tiny-BASIC/)
+[https://vincbr900.github.io/8088-Tiny-BASIC/](https://vincbr900.github.io/8088-Tiny-BASIC/)
 
 > If you've found these Tiny BASIC interpreters useful for learning, retrocomputing, or your own projects, you can buy me a coffee.  Donations are entirely optional but greatly appreciated.
 > [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/vpcrabtreeZ)
